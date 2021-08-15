@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# 构建文件
+build/
