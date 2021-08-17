@@ -164,20 +164,17 @@ namespace ylib
         }
     }
 
-    HTTPHeaderParser::HTTPHeaderParser(HTTPMsg &msg) : _msg(msg)
+    //---------------------------- HTTP 消息解析部分-----------------------------//
+
+    HTTPMsgParser::HTTPMsgParser(HTTPMsg &msg) : _msg(msg)
     {
     }
 
-    HTTPHeaderParser::~HTTPHeaderParser()
+    HTTPMsgParser::~HTTPMsgParser()
     {
     }
 
-    void HTTPHeaderParser::buffer_add(const std::string &new_content)
-    {
-        _buf += new_content;
-    }
-
-    bool HTTPHeaderParser::parser()
+    bool HTTPMsgParser::parser(const std::string &buf, size_t start_idx)
     {
         bool r = false;
         while (true)
@@ -205,20 +202,14 @@ namespace ylib
         return false;
     }
 
-    std::string HTTPHeaderParser::get_left_str()
+    void HTTPMsgParser::reset()
     {
-        return _buf.substr(_body_start_pos);
-    }
-
-    void HTTPHeaderParser::reset()
-    {
-        _buf.clear();
         _parser_state = 0;
         _header_start_pos = 0;
         _body_start_pos = 0;
     }
 
-    bool HTTPHeaderParser::read_firstline()
+    bool HTTPMsgParser::read_firstline()
     {
         //读取第一行
         //HTTP/1.1 200 OK
@@ -240,7 +231,7 @@ namespace ylib
         return true;
     }
 
-    bool HTTPHeaderParser::read_header()
+    bool HTTPMsgParser::read_header()
     {
         //如果只有首行，没有头部。
         if (_buf.substr(_header_start_pos, 2) == "\r\n")
@@ -279,6 +270,8 @@ namespace ylib
         _parser_state = 2;
         return true;
     }
+
+
 
     HTTPReqHeaderParser::HTTPReqHeaderParser(HTTPRequestMsg &req)
         : HTTPHeaderParser(req), _req(req)
