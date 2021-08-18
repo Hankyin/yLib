@@ -7,7 +7,7 @@
 namespace ylib
 {
 
-    enum HTTPMethod
+    enum class HTTPMethod
     {
         GET,
         POST,
@@ -20,17 +20,27 @@ namespace ylib
         UNKNOW,
     };
 
+    /**
+     * @brief HTTP的版本，目前只支持1.1,其余todo
+     * 
+     */
+    enum class HTTPVersion
+    {
+        V0_9,
+        V1_0,
+        V1_1,
+        V2_0,
+    };
+
     std::string HTTPCode_to_str(int stat_code);
     std::string HTTPMethod_to_str(HTTPMethod m);
     HTTPMethod str_to_HTTPMethod(const std::string &str);
-    
+
     struct HTTPMsg
     {
         std::string first_line;
         std::map<std::string, std::string> headers;
         std::string body;
-        // HTTPBodyReader body_reader;
-        // HTTPBodyWriter body_writer;
 
         int tag = 0; //用来标记这个msg的一些属性，比如是系统自动发送的，就置1.
 
@@ -45,31 +55,30 @@ namespace ylib
 
     struct HTTPResponseMsg : public HTTPMsg
     {
-        std::string version;
+        HTTPVersion version;
         int code;
         std::string code_line;
     };
 
     struct HTTPRequestMsg : public HTTPMsg
     {
+        HTTPVersion version;
         HTTPMethod method;
         std::string path; // 单纯URL，不包含query部分
-        std::string version;
         std::map<std::string, std::string> querys;
     };
 
     /**
-     * @brief 解析http头部，body部分本类不负责。HTTPMsg由外部传入。
+     * @brief http消息解析器。
      * 
      */
-    class HTTPHeaderParser
+    class HTTPMsgParser
     {
     public:
-        HTTPHeaderParser(HTTPMsg &msg);
-        ~HTTPHeaderParser();
-        void buffer_add(const std::string &new_content);
-        virtual bool parser();
-        std::string get_left_str();
+        HTTPMsgParser(HTTPMsg &msg);
+        ~HTTPMsgParser();
+        virtual bool parser(const std::string &buf, size_t start_idx = 0);
+
         void reset();
         void set_firstline_max_size(size_t si) { _firstline_max_size = si; }
         void set_header_max_size(size_t si) { _header_max_size = si; }
@@ -87,14 +96,13 @@ namespace ylib
         size_t _header_start_pos = 0;
         size_t _body_start_pos = 0;
         HTTPMsg &_msg;
-        std::string _buf;
     };
 
-    class HTTPReqHeaderParser : public HTTPHeaderParser
+    class HTTPReqParser : public HTTPMsgParser
     {
     public:
-        HTTPReqHeaderParser(HTTPRequestMsg &req);
-        ~HTTPReqHeaderParser();
+        HTTPReqParser(HTTPRequestMsg &req);
+        ~HTTPReqParser();
         virtual bool parser() override;
 
     private:
