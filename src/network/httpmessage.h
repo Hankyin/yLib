@@ -75,49 +75,42 @@ namespace ylib
     class HTTPMsgParser
     {
     public:
-        HTTPMsgParser(HTTPMsg &msg);
+        HTTPMsgParser();
         ~HTTPMsgParser();
-        virtual bool parser(const std::string &buf, size_t start_idx = 0);
 
-        void reset();
+        /**
+         * @brief 解析http的首行
+         *        
+         * @param msg_line 输出参数，外部提供空间，解析成功后结果放在这里
+         * @param buf 要解析的字符串
+         * @param start_pos 解析字符串的开始位置。
+         * @return int 成功返回首行在字符串的结束位置，失败返回std::npos
+         */
+        int parser_firstline(std::string &msg_line, const std::string &buf, size_t start_pos = 0);
+
+        /**
+         * @brief 解析http的头部信息。buf中的头部信息必须完整，如果只包含部分头部信息认为解析失败，
+         *        只有解析成功后msg_header才会被赋值。
+         * @param msg_line 输出参数，外部提供空间，解析成功后结果放在这里
+         * @param buf 要解析的字符串
+         * @param start_pos 解析字符串的开始位置。
+         * @return int 成功返回首行在字符串的结束位置，失败返回std::npos
+         */
+        int parser_header(std::map<std::string, std::string> &msg_header, const std::string &buf, size_t start_pos = 0);
+
+        int parser_resp_line(HTTPVersion version, int code, std::string code_line, const std::string &first_line);
+
+        int parser_req_line(HTTPVersion version, HTTPMethod method, std::string path,
+                            std::map<std::string, std::string> querys,
+                            const std::string &first_line);
+
         void set_firstline_max_size(size_t si) { _firstline_max_size = si; }
         void set_header_max_size(size_t si) { _header_max_size = si; }
 
     protected:
-        bool read_firstline();
-        bool read_header();
-        size_t _firstline_max_size;
-        size_t _header_max_size;
-        //http协议读取阶段
-        // 0 头部
-        // 1 header
-        // 2 body,也就是本类的结束了
-        int _parser_state = 0;
-        size_t _header_start_pos = 0;
-        size_t _body_start_pos = 0;
-        HTTPMsg &_msg;
-    };
-
-    class HTTPReqParser : public HTTPMsgParser
-    {
-    public:
-        HTTPReqParser(HTTPRequestMsg &req);
-        ~HTTPReqParser();
-        virtual bool parser() override;
-
-    private:
-        HTTPRequestMsg &_req;
-    };
-
-    class HTTPRespHeaderParser : public HTTPHeaderParser
-    {
-    public:
-        HTTPRespHeaderParser(HTTPResponseMsg &resp);
-        ~HTTPRespHeaderParser();
-        virtual bool parser() override;
-
-    private:
-        HTTPResponseMsg &_resp;
+        size_t _firstline_max_size = 1024;
+        size_t _header_max_size = 2048;
+        static const std::string CRLF;
     };
 
 } // namespace ylib

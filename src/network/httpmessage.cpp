@@ -166,7 +166,9 @@ namespace ylib
 
     //---------------------------- HTTP 消息解析部分-----------------------------//
 
-    HTTPMsgParser::HTTPMsgParser(HTTPMsg &msg) : _msg(msg)
+    const std::string HTTPMsgParser::CRLF = "\r\n";
+
+    HTTPMsgParser::HTTPMsgParser()
     {
     }
 
@@ -174,87 +176,68 @@ namespace ylib
     {
     }
 
-    bool HTTPMsgParser::parser(const std::string &buf, size_t start_idx)
-    {
-        bool r = false;
-        while (true)
-        {
-            switch (_parser_state)
-            {
-            case 0:
-                r = read_firstline();
-                if (r == false)
-                {
-                    return false;
-                }
-            case 1:
-                r = read_header();
-                if (r == false)
-                {
-                    return false;
-                }
-            case 2:
-                // 头部已经读取完成
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    void HTTPMsgParser::reset()
-    {
-        _parser_state = 0;
-        _header_start_pos = 0;
-        _body_start_pos = 0;
-    }
-
-    bool HTTPMsgParser::read_firstline()
+    int HTTPMsgParser::parser_firstline(std::string &msg_line, const std::string &buf, size_t start_pos)
     {
         //读取第一行
         //HTTP/1.1 200 OK
         //POST /test/index.html HTTP/1.1
-        auto p = _buf.find("\r\n");
-        if (p == _buf.npos)
+        size_t p = std::string::npos;
+        if (buf.size() < _firstline_max_size)
         {
-            if (_buf.size() > _firstline_max_size) //首行太长了
+            // 长度较短。
+            p = buf.find(CRLF, start_pos);
+            if (p != std::string::npos)
             {
-                throw HTTPTooLongException(0, _buf.size(), _firstline_max_size);
+                msg_line = buf.substr(start_pos, p);
             }
-            return false;
+            return p + 2;
         }
-        std::string head_line = _buf.substr(0, p);
-
-        _msg.first_line = head_line;
-        _header_start_pos = p + 2; //需要计算回车换行
-        _parser_state = 1;
-        return true;
+        else
+        {
+            // buf太长
+            p = buf.find(CRLF.c_str(), start_pos, _firstline_max_size);
+            if (p == std::string::npos)
+            {
+                throw HTTPTooLongException(0, buf.size(), _firstline_max_size);
+            }
+            msg_line = buf.substr(start_pos, p);
+            return p + 2;
+        }
     }
 
-    bool HTTPMsgParser::read_header()
+    int HTTPMsgParser::parser_header(std::map<std::string, std::string> &msg_header, const std::string &buf, size_t start_pos)
     {
-        //如果只有首行，没有头部。
-        if (_buf.substr(_header_start_pos, 2) == "\r\n")
-        {
-            _body_start_pos = _header_start_pos + 2;
-            return true;
-        }
-        //有头部
-        auto p = _buf.find("\r\n\r\n", _header_start_pos);
-        if (p == _buf.npos)
-        {
-            if (_buf.size() > _header_start_pos) //header太长了
-            {
-                throw HTTPTooLongException(1, _buf.size(), _header_max_size);
-            }
-            return false;
-        }
-        std::string header = _buf.substr(_header_start_pos, p - _header_start_pos + 2); //算上最后的两个回车
+        // http消息必须有头部消息，没有头部则认为格式错误
+        // 每发现一行认为是一个header
+        // 当发现一个空行时认为结束。
+        size_t st = start_pos;
+        size_t ed = buf.size() < _header_max_size ? buf.size() : _header_max_size;
 
-        for (size_t i = 0; i < header.size();)
+        //查找结束标志
+        size_t p = buf.find((CRLF + CRLF).c_str(), st, ed);
+        if (p == std::string::npos)
         {
-            size_t hp = header.find("\r\n", i);
-            std::string header_item = header.substr(i, hp - i);
+            if (buf.size() > _header_max_size)
+            {
+                // buf长度超过max还没找到结束标志就抛出异常。
+                throw HTTPTooLongException(1, buf.size(), _firstline_max_size);
+            }
+
+            // 没找到结束标志直接返回失败，不进行处理。
+            return p;
+        }
+
+        //解析条目
+        while (true)
+        {
+            size_t p = buf.find(CRLF.c_str(), st, ed);
+            if (p == st)
+            {
+                //找到了结尾，返回结束的位置。
+                return p + 2; //算上
+            }
+            std::string header_item = buf.substr(st, p - st);
+
             size_t colon_idx = header_item.find_first_of(':');
 
             if (colon_idx == header_item.npos)
@@ -263,32 +246,40 @@ namespace ylib
             }
             std::string k = string_trim(header_item.substr(0, colon_idx));
             std::string v = string_trim(header_item.substr(colon_idx + 1));
-            _msg.headers[k] = v;
-            i = hp + 2;
+            msg_header[k] = v;
+
+            st = p + 2;
         }
-        _body_start_pos = p + 4;
-        _parser_state = 2;
+    }
+
+    int HTTPMsgParser::parser_resp_line(HTTPVersion version, int code, std::string code_line, const std::string &first_line)
+    {
+
+        auto first_vec = string_split(first_line, ' ');
+        if (first_vec.size() != 3)
+        {
+            throw HTTPFormatException("http resp first line format error", first_line);
+        }
+        std::string v_str = string_trim(first_vec[0]);
+        if (v_str == "HTTP/1.1")
+        {
+
+        }
+        else(v_str == "HTTP/1.0")
+        {
+
+        }
+        else(v_str == "HTTP/0.9")
+        
+            code = ::atoi(first_vec[1].c_str());
+        code_line = first_vec[2];
         return true;
     }
 
-
-
-    HTTPReqHeaderParser::HTTPReqHeaderParser(HTTPRequestMsg &req)
-        : HTTPHeaderParser(req), _req(req)
+    int parser_req_line(HTTPVersion version, HTTPMethod method, std::string path,
+                        std::map<std::string, std::string> querys,
+                        const std::string &first_line)
     {
-    }
-
-    HTTPReqHeaderParser::~HTTPReqHeaderParser()
-    {
-    }
-
-    bool HTTPReqHeaderParser::parser()
-    {
-        if (HTTPHeaderParser::parser() == false)
-        {
-            return false;
-        }
-        //父类已经处理完成。
         std::string first_line = _req.first_line;
         auto first_vec = string_split(first_line, ' ');
         if (first_vec.size() != 3)
@@ -318,34 +309,6 @@ namespace ylib
         }
         _req.path = first_vec[1];
 
-        return true;
-    }
-
-    HTTPRespHeaderParser::HTTPRespHeaderParser(HTTPResponseMsg &resp)
-        : HTTPHeaderParser(resp), _resp(resp)
-    {
-    }
-
-    HTTPRespHeaderParser::~HTTPRespHeaderParser()
-    {
-    }
-
-    bool HTTPRespHeaderParser::parser()
-    {
-        if (HTTPHeaderParser::parser() == false)
-        {
-            return false;
-        }
-        //父类已经处理完成。
-        std::string first_line = _resp.first_line;
-        auto first_vec = string_split(first_line, ' ');
-        if (first_vec.size() != 3)
-        {
-            throw HTTPFormatException("http resp first line format error", first_line);
-        }
-        _resp.version = first_vec[0];
-        _resp.code = ::atoi(first_vec[1].c_str());
-        _resp.code_line = first_vec[2];
         return true;
     }
 
