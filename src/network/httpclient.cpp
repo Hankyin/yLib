@@ -1,5 +1,5 @@
 #include "httpclient.h"
-#include "network.h"
+#include "netutils.h"
 #include "httpmessage.h"
 #include "httpexcept.h"
 
@@ -28,7 +28,7 @@ namespace ylib
         req.method = HTTPMethod::GET;
         req.path = _url.path;
         cli.connect(http_ip, _url.port);
-        cli.send_request(req, resp);
+        cli.make_request(req, resp);
         return resp;
     }
 
@@ -57,7 +57,11 @@ namespace ylib
         _stat = 0;
     }
 
-    void HTTPClient::send_request(const HTTPRequestMsg &req, HTTPResponseMsg &resp)
+    void HTTPClient::make_request(const HTTPRequestMsg &req, HTTPResponseMsg &resp)
+    {
+    }
+
+    void HTTPClient::send_req(const HTTPRequestMsg &req)
     {
         std::string head_line;
         std::string header_part;
@@ -80,16 +84,21 @@ namespace ylib
         _socket.write_str(head_line);
         _socket.write_str(header_part);
         _socket.write_str(req.body);
+    }
 
+    void HTTPClient::recv_resp(HTTPResponseMsg &resp)
+    {
         std::string http_buf;
-
-        bool paser_working = true;
-        HTTPRespHeaderParser rp(resp);
-
-        while (paser_working)
+        HTTPMsgParser msg_parser;
+        while (true)
         {
             std::string pack = _socket.read(4096);
-            rp.buffer_add(pack);
+            http_buf += pack;
+            //首先判断头部消息是否完整，根据两个回车换行判断。
+            //头部消息完整后再调用http解析器处理。
+            http_buf.find(HTTPMsgParser::CRLF)
+
+
             if (rp.parser())
             {
                 //头部解析完成，读取body

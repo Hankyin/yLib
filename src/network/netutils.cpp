@@ -1,4 +1,4 @@
-#include "network.h"
+#include "netutils.h"
 
 #include <sys/socket.h>
 #include <netdb.h>
@@ -141,7 +141,7 @@ namespace ylib
 
     std::string &URL::assembly_url()
     {
-        //协议://用户名:密码@子域名.域名.顶级域名:端口号/目录/文件名.文件后缀?参数=值#标志
+        //协议://用户名:密码@子域名.域名.顶级域名:端口号/目录/文件名.文件后缀?参数=值&参数=值#标志
         if (url.empty())
         {
             url = scheme + "://";

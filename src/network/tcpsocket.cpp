@@ -1,5 +1,5 @@
 #include "tcpsocket.h"
-#include "network.h"
+#include "sockexcept.h"
 #include "core/logger.h"
 
 #include <sys/socket.h>

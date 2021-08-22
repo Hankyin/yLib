@@ -1,6 +1,5 @@
 #pragma once
 
-#include "network.h"
 #include <string>
 #include <stdexcept>
 #include <stdint.h>

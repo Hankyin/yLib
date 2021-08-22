@@ -98,10 +98,29 @@ namespace ylib
          */
         int parser_header(std::map<std::string, std::string> &msg_header, const std::string &buf, size_t start_pos = 0);
 
-        int parser_resp_line(HTTPVersion version, int code, std::string code_line, const std::string &first_line);
+        /**
+         * @brief 解析http回复消息的首行
+         * 
+         * @param version 输出
+         * @param code 输出
+         * @param code_line 输出 
+         * @param first_line 输入
+         * @return int 成功返回0，失败会抛出异常 HTTPFormatException。
+         */
+        int parser_resp_line(HTTPVersion &version, int &code, std::string &code_line, const std::string &first_line);
 
-        int parser_req_line(HTTPVersion version, HTTPMethod method, std::string path,
-                            std::map<std::string, std::string> querys,
+        /**
+         * @brief 解析http请求消息的首行
+         * 
+         * @param version 
+         * @param method 
+         * @param path 
+         * @param querys 
+         * @param first_line 
+         * @return int 成功返回0 失败抛异常 HTTPFormatException。
+         */
+        int parser_req_line(HTTPVersion &version, HTTPMethod &method, std::string &path,
+                            std::map<std::string, std::string> &querys,
                             const std::string &first_line);
 
         void set_firstline_max_size(size_t si) { _firstline_max_size = si; }

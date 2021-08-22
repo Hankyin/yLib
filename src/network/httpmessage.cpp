@@ -252,7 +252,7 @@ namespace ylib
         }
     }
 
-    int HTTPMsgParser::parser_resp_line(HTTPVersion version, int code, std::string code_line, const std::string &first_line)
+    int HTTPMsgParser::parser_resp_line(HTTPVersion &version, int &code, std::string &code_line, const std::string &first_line)
     {
 
         auto first_vec = string_split(first_line, ' ');
@@ -263,38 +263,69 @@ namespace ylib
         std::string v_str = string_trim(first_vec[0]);
         if (v_str == "HTTP/1.1")
         {
-
+            version = HTTPVersion::V1_1;
         }
-        else(v_str == "HTTP/1.0")
+        else if (v_str == "HTTP/1.0")
         {
-
+            version = HTTPVersion::V1_0;
         }
-        else(v_str == "HTTP/0.9")
-        
-            code = ::atoi(first_vec[1].c_str());
+        else if (v_str == "HTTP/0.9")
+        {
+            version = HTTPVersion::V0_9;
+        }
+        else
+        {
+            throw HTTPFormatException("http version not support ", first_line);
+        }
+
+        code = ::atoi(first_vec[1].c_str());
+        if (code == 0)
+        {
+            throw HTTPFormatException("http code is not a number", first_line);
+        }
+
         code_line = first_vec[2];
-        return true;
+        return 0;
     }
 
-    int parser_req_line(HTTPVersion version, HTTPMethod method, std::string path,
-                        std::map<std::string, std::string> querys,
-                        const std::string &first_line)
+    int HTTPMsgParser::parser_req_line(HTTPVersion &version, HTTPMethod &method, std::string &path,
+                                       std::map<std::string, std::string> &querys,
+                                       const std::string &first_line)
     {
-        std::string first_line = _req.first_line;
         auto first_vec = string_split(first_line, ' ');
         if (first_vec.size() != 3)
         {
             throw HTTPFormatException("http req first line format error", first_line);
         }
-        _req.method = str_to_HTTPMethod(first_vec[0]);
-        _req.version = first_vec[2];
-        std::string total_path = first_vec[1]; // 带参数的path
-        // 解析url中query部分,假设没有fragment部分
-        // TODO将这部分整合到URL类中
-        auto query_idx = total_path.find_first_of('?');
-        if (query_idx != total_path.npos)
+        method = str_to_HTTPMethod(first_vec[0]);
+
+        std::string v_str = string_trim(first_vec[2]);
+        if (v_str == "HTTP/1.1")
         {
-            std::string query_str = total_path.substr(query_idx);
+            version = HTTPVersion::V1_1;
+        }
+        else if (v_str == "HTTP/1.0")
+        {
+            version = HTTPVersion::V1_0;
+        }
+        else if (v_str == "HTTP/0.9")
+        {
+            version = HTTPVersion::V0_9;
+        }
+        else
+        {
+            throw HTTPFormatException("http version not support ", first_line);
+        }
+
+        // 处理url路径
+        // 例如:/study/video?class_id=24121&course_id=820&unit_id=13457#123
+        auto fr_idx = first_vec[1].find_first_of('#');
+        path = first_vec[1].substr(0, fr_idx); // 去掉# 没有的话fr_idx是npos，也无妨
+
+        auto query_idx = path.find_first_of('?');
+        if (query_idx != path.npos)
+        {
+            std::string query_str = path.substr(query_idx);
             auto query_map = string_split(query_str, '&');
             for (auto &kvq : query_map)
             {
@@ -303,13 +334,11 @@ namespace ylib
                 {
                     std::string k = kvq.substr(0, equal_idx);
                     std::string v = kvq.substr(equal_idx);
-                    _req.querys[k] = v;
+                    querys[k] = v;
                 }
             }
         }
-        _req.path = first_vec[1];
-
-        return true;
+        return 0;
     }
 
 } // namespace ylib

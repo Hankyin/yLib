@@ -29,7 +29,7 @@ namespace ylib
         ~HTTPClient();
 
         void connect(const std::string &ip, uint16_t port);
-        void send_request(const HTTPRequestMsg &req, HTTPResponseMsg &resp);
+        void make_request(const HTTPRequestMsg &req, HTTPResponseMsg &resp);
         void close();
 
         void set_firstline_max_size(size_t si) { _firstline_max_size = si; }
@@ -42,7 +42,8 @@ namespace ylib
     private:
  
         TCPSocket _socket;
-
+        void send_req(const HTTPRequestMsg &req);
+        void recv_resp(HTTPResponseMsg &resp);
         size_t _firstline_max_size = 4096;
         size_t _header_max_size = 4096;
         //0 断开

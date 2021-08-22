@@ -1,5 +1,5 @@
 #include "abstractsocket.h"
-#include "network.h"
+#include "sockexcept.h"
 
 #include <unistd.h>
 #include <string.h>
