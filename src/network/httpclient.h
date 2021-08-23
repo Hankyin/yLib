@@ -32,8 +32,19 @@ namespace ylib
         void make_request(const HTTPRequestMsg &req, HTTPResponseMsg &resp);
         void close();
 
-        void set_firstline_max_size(size_t si) { _firstline_max_size = si; }
-        void set_header_max_size(size_t si) { _header_max_size = si; }
+        /**
+         * @brief 设置_pack_size，即每次从socket中读取的最大数据包大小。
+         * 
+         * @param si 
+         */
+        void set_one_pack_size(size_t si) { _pack_size = si; }
+
+        /**
+         * @brief 设置header_pack_num,即最多有 
+         * 
+         * @param pack_num 
+         */
+        void set_header_max_pack(uint32_t pack_num) { _header_pack_num = pack_num; }
 
         //方便使用的几个简单接口
         static HTTPResponseMsg GET(const std::string &url);
@@ -44,8 +55,8 @@ namespace ylib
         TCPSocket _socket;
         void send_req(const HTTPRequestMsg &req);
         void recv_resp(HTTPResponseMsg &resp);
-        size_t _firstline_max_size = 4096;
-        size_t _header_max_size = 4096;
+        size_t _pack_size = 4096;
+        size_t _header_pack_num = 1;
         //0 断开
         //1 连接
         int _stat = 0;

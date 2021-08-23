@@ -77,6 +77,7 @@ namespace ylib
     public:
         HTTPMsgParser();
         ~HTTPMsgParser();
+        static const std::string CRLF;
 
         /**
          * @brief 解析http的首行
@@ -129,7 +130,6 @@ namespace ylib
     protected:
         size_t _firstline_max_size = 1024;
         size_t _header_max_size = 2048;
-        static const std::string CRLF;
     };
 
 } // namespace ylib

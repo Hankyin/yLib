@@ -89,17 +89,20 @@ namespace ylib
     void HTTPClient::recv_resp(HTTPResponseMsg &resp)
     {
         std::string http_buf;
+        int st = 0; 
         HTTPMsgParser msg_parser;
+        std::string double_CRLF = HTTPMsgParser::CRLF + HTTPMsgParser::CRLF;
+
         while (true)
         {
             std::string pack = _socket.read(4096);
             http_buf += pack;
             //首先判断头部消息是否完整，根据两个回车换行判断。
             //头部消息完整后再调用http解析器处理。
-            http_buf.find(HTTPMsgParser::CRLF)
+            size_t p = http_buf.find(double_CRLF);
+            if(p ==  )
 
-
-            if (rp.parser())
+                if (rp.parser())
             {
                 //头部解析完成，读取body
                 std::string LEN = "Content-Length";
