@@ -57,10 +57,6 @@ namespace ylib
         _stat = 0;
     }
 
-    void HTTPClient::make_request(const HTTPRequestMsg &req, HTTPResponseMsg &resp)
-    {
-    }
-
     void HTTPClient::send_req(const HTTPRequestMsg &req)
     {
         std::string head_line;
@@ -86,10 +82,11 @@ namespace ylib
         _socket.write_str(req.body);
     }
 
-    void HTTPClient::recv_resp(HTTPResponseMsg &resp)
+    void HTTPClient::recv_resp(HTTPResponseMsg &resp, HTTPCallback callback)
     {
         std::string http_buf;
-        int st = 0; 
+        int st = 0;
+        int pknum = 1;
         HTTPMsgParser msg_parser;
         std::string double_CRLF = HTTPMsgParser::CRLF + HTTPMsgParser::CRLF;
 
@@ -99,10 +96,39 @@ namespace ylib
             http_buf += pack;
             //首先判断头部消息是否完整，根据两个回车换行判断。
             //头部消息完整后再调用http解析器处理。
-            size_t p = http_buf.find(double_CRLF);
-            if(p ==  )
+            size_t p = http_buf.find(double_CRLF, st);
 
-                if (rp.parser())
+            if (p == std::string::npos)
+            {
+                pknum++;
+                if (pknum > _header_pack_num)
+                {
+                    //过长报错
+                    throw HTTPTooLongException(_header_pack_num, _pack_size)
+                }
+                else
+                {
+                    st = http_buf.size() > 2 ? http_buf.size() - 2 : 0; // 避免httpbuf的size小于0
+                    continue;
+                }
+            }
+            else
+            {
+                //成功找到了头部的结尾
+                std::string header_part = http_buf.substr(0, p);
+                msg_parser.parser_msg(resp, header_part);
+
+                if(callback == nullptr)
+                {
+                    //没有设置回调，将body放在resp中。
+                }
+                else
+                {
+                    //设置了回调函数，则调用回调函数处理.
+                }
+
+            }
+            if (rp.parser())
             {
                 //头部解析完成，读取body
                 std::string LEN = "Content-Length";

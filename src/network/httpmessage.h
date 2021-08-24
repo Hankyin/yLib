@@ -80,24 +80,14 @@ namespace ylib
         static const std::string CRLF;
 
         /**
-         * @brief 解析http的首行
-         *        
-         * @param msg_line 输出参数，外部提供空间，解析成功后结果放在这里
-         * @param buf 要解析的字符串
-         * @param start_pos 解析字符串的开始位置。
-         * @return int 成功返回首行在字符串的结束位置，失败返回std::npos
+         * @brief 解析msg中的首行和头部信息。body部分不解析。
+         *        本函数认为空行是结束标准。不传入空行认为解析失败。
+         * @param msg 
+         * @param buf 
+         * @param start_pos 
+         * @exception 解析失败抛出HTTPFormatException异常。
          */
-        int parser_firstline(std::string &msg_line, const std::string &buf, size_t start_pos = 0);
-
-        /**
-         * @brief 解析http的头部信息。buf中的头部信息必须完整，如果只包含部分头部信息认为解析失败，
-         *        只有解析成功后msg_header才会被赋值。
-         * @param msg_line 输出参数，外部提供空间，解析成功后结果放在这里
-         * @param buf 要解析的字符串
-         * @param start_pos 解析字符串的开始位置。
-         * @return int 成功返回首行在字符串的结束位置，失败返回std::npos
-         */
-        int parser_header(std::map<std::string, std::string> &msg_header, const std::string &buf, size_t start_pos = 0);
+        void parser_msg(HTTPMsg &msg, const std::string &buf, size_t start_pos = 0);
 
         /**
          * @brief 解析http回复消息的首行
@@ -123,13 +113,6 @@ namespace ylib
         int parser_req_line(HTTPVersion &version, HTTPMethod &method, std::string &path,
                             std::map<std::string, std::string> &querys,
                             const std::string &first_line);
-
-        void set_firstline_max_size(size_t si) { _firstline_max_size = si; }
-        void set_header_max_size(size_t si) { _header_max_size = si; }
-
-    protected:
-        size_t _firstline_max_size = 1024;
-        size_t _header_max_size = 2048;
     };
 
 } // namespace ylib

@@ -22,14 +22,24 @@
 namespace ylib
 {
 
+    /**
+     * @brief HTTP请求客户端。输入req，返回resp。发生错误时抛出异常。
+     * 
+     */
     class HTTPClient
     {
     public:
         HTTPClient();
         ~HTTPClient();
 
+        /**
+         * @brief HTTP回调函数，当需要程序
+         * 
+         */
+        using HTTPCallback = void (*)(const HTTPRequestMsg &req, HTTPResponseMsg &resp, const std::string &chunk);
         void connect(const std::string &ip, uint16_t port);
-        void make_request(const HTTPRequestMsg &req, HTTPResponseMsg &resp);
+        void send_req(const HTTPRequestMsg &req);
+        void recv_resp(HTTPResponseMsg &resp, HTTPCallback callback = nullptr);
         void close();
 
         /**
@@ -40,23 +50,34 @@ namespace ylib
         void set_one_pack_size(size_t si) { _pack_size = si; }
 
         /**
-         * @brief 设置header_pack_num,即最多有 
-         * 
-         * @param pack_num 
-         */
-        void set_header_max_pack(uint32_t pack_num) { _header_pack_num = pack_num; }
+        * @brief 设置
+        * 
+        * @param pack_num  最小是1，否则失败。
+        * @return true 设置成功
+        * @return false 设置失败
+        */
+        bool set_header_max_pack(int pack_num)
+        {
+            if (pack_num > 0)
+            {
+                _header_pack_num = pack_num;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
 
         //方便使用的几个简单接口
         static HTTPResponseMsg GET(const std::string &url);
         static HTTPResponseMsg POST(const std::string &url, const std::string &body);
 
     private:
- 
         TCPSocket _socket;
-        void send_req(const HTTPRequestMsg &req);
-        void recv_resp(HTTPResponseMsg &resp);
+
         size_t _pack_size = 4096;
-        size_t _header_pack_num = 1;
+        uint32_t _header_pack_num = 1;
         //0 断开
         //1 连接
         int _stat = 0;

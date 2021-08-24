@@ -176,65 +176,34 @@ namespace ylib
     {
     }
 
-    int HTTPMsgParser::parser_firstline(std::string &msg_line, const std::string &buf, size_t start_pos)
+    void HTTPMsgParser::parser_msg(HTTPMsg &msg, const std::string &buf, size_t start_pos = 0)
     {
         //读取第一行
         //HTTP/1.1 200 OK
         //POST /test/index.html HTTP/1.1
-        size_t p = std::string::npos;
-        if (buf.size() < _firstline_max_size)
-        {
-            // 长度较短。
-            p = buf.find(CRLF, start_pos);
-            if (p != std::string::npos)
-            {
-                msg_line = buf.substr(start_pos, p);
-            }
-            return p + 2;
-        }
-        else
-        {
-            // buf太长
-            p = buf.find(CRLF.c_str(), start_pos, _firstline_max_size);
-            if (p == std::string::npos)
-            {
-                throw HTTPTooLongException(0, buf.size(), _firstline_max_size);
-            }
-            msg_line = buf.substr(start_pos, p);
-            return p + 2;
-        }
-    }
-
-    int HTTPMsgParser::parser_header(std::map<std::string, std::string> &msg_header, const std::string &buf, size_t start_pos)
-    {
-        // http消息必须有头部消息，没有头部则认为格式错误
         // 每发现一行认为是一个header
         // 当发现一个空行时认为结束。
         size_t st = start_pos;
-        size_t ed = buf.size() < _header_max_size ? buf.size() : _header_max_size;
-
-        //查找结束标志
-        size_t p = buf.find((CRLF + CRLF).c_str(), st, ed);
-        if (p == std::string::npos)
+        size_t first_p = buf.find(CRLF, st);
+        if(first_p == std::string::npos)
         {
-            if (buf.size() > _header_max_size)
-            {
-                // buf长度超过max还没找到结束标志就抛出异常。
-                throw HTTPTooLongException(1, buf.size(), _firstline_max_size);
-            }
-
-            // 没找到结束标志直接返回失败，不进行处理。
-            return p;
+            throw HTTPFormatException("can not find first line", buf.substr(0, 20));//异常只查看前20个字符。
         }
+        msg.first_line = buf.substr(0, first_p);
 
-        //解析条目
+        st = first_p + 2;
         while (true)
         {
-            size_t p = buf.find(CRLF.c_str(), st, ed);
+            size_t p = buf.find(CRLF, st);
             if (p == st)
             {
-                //找到了结尾，返回结束的位置。
-                return p + 2; //算上
+                //找到了结尾，返回。
+                return;
+            }
+            else if(p == std::string::npos)
+            {
+                //正常应该从上面的return结束。
+                throw HTTPFormatException("finish abnormal ", buf.substr(0, 20));
             }
             std::string header_item = buf.substr(st, p - st);
 
@@ -246,10 +215,11 @@ namespace ylib
             }
             std::string k = string_trim(header_item.substr(0, colon_idx));
             std::string v = string_trim(header_item.substr(colon_idx + 1));
-            msg_header[k] = v;
+            msg.headers[k] = v;
 
             st = p + 2;
         }
+        return;
     }
 
     int HTTPMsgParser::parser_resp_line(HTTPVersion &version, int &code, std::string &code_line, const std::string &first_line)

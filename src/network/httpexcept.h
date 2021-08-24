@@ -20,16 +20,10 @@ namespace ylib
     class HTTPTooLongException : public HTTPException
     {
     public:
-        HTTPTooLongException(int pt, int c_size, int mx_size)
-            : HTTPException(std::string("http too long exception [") + (pt == 0 ? "firstline:" : "header:") + std::to_string(cur_size) + '/' + std::to_string(max_size) + "]")
+        HTTPTooLongException(size_t packsize, uint32_t packnum)
+            : HTTPException(std::string("http header too long [") + std::to_string(packsize) + '/' + std::to_string(packnum) + "]")
         {
-            part = pt;
-            cur_size = c_size;
-            max_size = mx_size;
         }
-        int part; // 0 首行过长， 1 头部过长
-        size_t cur_size;
-        size_t max_size;
     };
 
     // http 语法错误异常
