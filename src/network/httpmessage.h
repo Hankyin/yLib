@@ -1,8 +1,10 @@
 #pragma once
 
+// C++
 #include <string>
 #include <map>
 #include <functional>
+#include <any> // 回调函数传参
 
 namespace ylib
 {
@@ -36,11 +38,19 @@ namespace ylib
     std::string HTTPMethod_to_str(HTTPMethod m);
     HTTPMethod str_to_HTTPMethod(const std::string &str);
 
+    /**
+     * @brief HTTP回调函数
+     * 
+     */
+    using HTTPCallback = bool (*)(HTTPMsg &msg, std::string &chunk_data);
+
     struct HTTPMsg
     {
         std::string first_line;
         std::map<std::string, std::string> headers;
         std::string body;
+        std::any data;
+        HTTPCallback callback = nullptr;
 
         int tag = 0; //用来标记这个msg的一些属性，比如是系统自动发送的，就置1.
 

@@ -117,7 +117,7 @@ namespace ylib
                 //成功找到了头部的结尾
                 std::string header_part = http_buf.substr(0, p);
                 msg_parser.parser_msg(resp, header_part);
-
+                msg_parser.parser_resp_line(resp.version, resp.code, resp.code_line, resp.first_line);
                 if(callback == nullptr)
                 {
                     //没有设置回调，将body放在resp中。
