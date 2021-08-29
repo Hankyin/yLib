@@ -85,12 +85,24 @@ namespace ylib
 
     private:
         TCPSocket _socket;
-
+        //常用的一些HTTP头。
+        static const std::string ContentLength;
+        static const std::string ContentEncoding;
+        static const std::string Connection;
+        static const std::string TransferEncoding;
         size_t _pack_size = 4096;
         uint32_t _header_pack_num = 1;
         //0 断开
         //1 连接
         int _stat = 0;
+
+        /**
+         * @brief 获取Content-Length 的值。
+         * 
+         * @param headers 
+         * @return size_t 成功返回长度值，如果不存在或者解析失败，返回0
+         */
+        size_t getContentLength(std::map<std::string, std::string> headers);
     };
 
 } // namespace ylib
