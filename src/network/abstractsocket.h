@@ -14,8 +14,8 @@ namespace ylib
     public:
         int write_str(const std::string &data);
         int write_uint32(uint32_t data);
-        std::string read(int len);
-        std::string readn(int len);
+        std::string read(size_t len);
+        std::string readn(size_t len);
         uint32_t read_uint32();
 
     protected:

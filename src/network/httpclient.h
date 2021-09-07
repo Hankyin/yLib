@@ -33,13 +33,13 @@ namespace ylib
      *  客户端发送大文件
      *  当req的内容较少时直接将数据放在req的body中即可。
      *  当req的内容较多时，可以设置req的callback，在回调函数中进行处理。
-     *  回调函数：bool (*)(HTTPMsg &msg, std::string &chunk_data);
-     *   msg是指当前HTTP消息，chunk_data 是指将被传输的数据。返回真时代表还有剩余内容，返回假时认为调用结束。
+     *  回调函数：void (*)(HTTPMsg &msg, std::string &chunk_data, int&stat);
+     *   msg是指当前HTTP消息，chunk_data 是指将被传输的数据。stat向外输出，=1说明数据没传完，=0说明传完了。
      * 
      *  客户端接收大文件
      *  当resp的内容较多时，可以设置resp的callback，在回调函数中进行处理。
-     *  回调函数：bool (*)(HTTPMsg &msg, std::string &chunk_data);
-     *   msg是指当前HTTP消息，chunk_data 是指将本次被读取的数据。此时返回值无所谓，不会被处理。
+     *  回调函数： void (*)(HTTPMsg &msg, std::string &chunk_data, int &stat);
+     *   msg是指当前HTTP消息，chunk_data 是指将本次被读取的数据。stat向内输入，=1说明还有数据，=0说明传完了。
      */
     class HTTPClient
     {
@@ -60,7 +60,7 @@ namespace ylib
         void set_one_pack_size(size_t si) { _pack_size = si; }
 
         /**
-        * @brief 设置
+        * @brief 设置首行和头部的最大长度。
         * 
         * @param pack_num  最小是1，否则失败。
         * @return true 设置成功
@@ -85,11 +85,7 @@ namespace ylib
 
     private:
         TCPSocket _socket;
-        //常用的一些HTTP头。
-        static const std::string ContentLength;
-        static const std::string ContentEncoding;
-        static const std::string Connection;
-        static const std::string TransferEncoding;
+        std::string http_buf; // 数据缓冲，socket中读取的所有内容先放到这里进行暂存。
         size_t _pack_size = 4096;
         uint32_t _header_pack_num = 1;
         //0 断开

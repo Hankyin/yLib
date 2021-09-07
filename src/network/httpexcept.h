@@ -36,4 +36,14 @@ namespace ylib
         }
     };
 
+    // http 路由解析失败
+    class HTTPRouteException : public HTTPException
+    {
+    public:
+        HTTPRouteException(const std::string &url, const std::string &method)
+            : HTTPException(std::string("url pattern route fail ") + "[" + method + " " + url + "]")
+        {
+        }
+    };
+
 } // namespace ylib

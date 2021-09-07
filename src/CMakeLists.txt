@@ -15,9 +15,9 @@ set(ALL_SRC ${CORE_SRC}
         ${UTILS_SRC}
         ${UTILS_ZIP_SRC})
 
+set(CMAKE_CXX_STANDARD 17) # 指定C++版本， 需要在add_library,add_exectable 前面
 add_library(${PROJECT_NAME} STATIC ${ALL_SRC})
 
 
-set(CMAKE_CXX_STANDARD 17) # 指定C++版本
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR})
 # target_link_libraries(${PROJECT_NAME} PRIVATE pthread)

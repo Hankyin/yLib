@@ -1,5 +1,5 @@
 #include "tcpserver.h"
-#include "network.h"
+#include "sockexcept.h"
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>

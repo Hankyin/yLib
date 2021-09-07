@@ -72,8 +72,12 @@ namespace ylib
         return written;
     }
 
-    std::string AbstractSocket::read(int len)
+    std::string AbstractSocket::read(size_t len)
     {
+        if(len == 0)
+        {
+            return std::string();
+        }
         void *buf = ::malloc(len);
         ssize_t nr = ::read(_fd, static_cast<char *>(buf), len);
         if (nr > 0)
@@ -100,14 +104,14 @@ namespace ylib
         return "";
     }
 
-    std::string AbstractSocket::readn(int len)
+    std::string AbstractSocket::readn(size_t len)
     {
-        if (_fd < 0)
+        if (_fd < 0 || len == 0)
         {
             return std::string();
         }
         int nread = 0;
-        void *buf = ::malloc(len);
+        void *buf = ::malloc(len); //malloc(0)未定义。
         while (nread < len)
         {
             ssize_t nr = ::read(_fd, static_cast<char *>(buf) + nread, len - nread);

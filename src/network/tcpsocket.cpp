@@ -84,9 +84,9 @@ namespace ylib
     }
     void TCPSocket::close()
     {
-        LOG_TRACE << "tcp socket close";
         if (_fd != -1)
         {
+            LOG_TRACE << "tcp socket close";
             ::close(_fd);
             _fd = -1;
         }

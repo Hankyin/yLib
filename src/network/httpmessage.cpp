@@ -37,7 +37,19 @@ namespace ylib
             return "";
         }
     }
-
+    std::string HTTPVersion_to_str(HTTPVersion v)
+    {
+        // http 0.9不需要注明版本号。
+        switch (v)
+        {
+        case HTTPVersion::V1_1:
+            return "HTTP/1.1";
+        case HTTPVersion::V1_0:
+            return "HTTP/1.0";
+        default:
+            return "";
+        }
+    }
     std::string HTTPCode_to_str(int stat_code)
     {
         static std::map<int, std::string> code_map = {
@@ -89,8 +101,14 @@ namespace ylib
             {504, "Gateway Timeout "},
             {505, "	HTTP Version Not Supported"},
         };
-        //用[]会导致副作用.传入没有的会创建一个空字符串
-        return code_map[stat_code];
+        if(code_map.find(stat_code) == code_map.end())
+        {
+            return "Unknow";
+        }
+        else
+        {
+            return code_map.at(stat_code);
+        }
     }
 
     HTTPMethod str_to_HTTPMethod(const std::string &str)
@@ -134,6 +152,34 @@ namespace ylib
         }
     }
 
+    HTTPVersion str_to_HTTPVersion(const std::string &str)
+    {
+        std::string v_str = string_trim(str);
+        HTTPVersion version;
+        if (v_str == "HTTP/1.1")
+        {
+            version = HTTPVersion::V1_1;
+        }
+        else if (v_str == "HTTP/1.0")
+        {
+            version = HTTPVersion::V1_0;
+        }
+        else if (v_str == "HTTP/0.9")
+        {
+            version = HTTPVersion::V0_9;
+        }
+        else
+        {
+            version = HTTPVersion::V_UNKNOW;
+        }
+        return version;
+    }
+
+    const std::string HTTPMsg::ContentLength = "Content-Length";
+    const std::string HTTPMsg::ContentEncoding = "Content-Encoding";
+    const std::string HTTPMsg::Connection = "Connection";
+    const std::string HTTPMsg::TransferEncoding = "Transfer-Encoding";
+
     void HTTPMsg::printf(const std::string &path) const
     {
         std::string http_content;
@@ -176,7 +222,7 @@ namespace ylib
     {
     }
 
-    void HTTPMsgParser::parser_msg(HTTPMsg &msg, const std::string &buf, size_t start_pos = 0)
+    void HTTPMsgParser::parser_msg(HTTPMsg &msg, const std::string &buf, size_t start_pos)
     {
         //读取第一行
         //HTTP/1.1 200 OK
@@ -185,9 +231,9 @@ namespace ylib
         // 当发现一个空行时认为结束。
         size_t st = start_pos;
         size_t first_p = buf.find(CRLF, st);
-        if(first_p == std::string::npos)
+        if (first_p == std::string::npos)
         {
-            throw HTTPFormatException("can not find first line", buf.substr(0, 20));//异常只查看前20个字符。
+            throw HTTPFormatException("can not find first line", buf.substr(0, 20)); //异常只查看前20个字符。
         }
         msg.first_line = buf.substr(0, first_p);
 
@@ -200,7 +246,7 @@ namespace ylib
                 //找到了结尾，返回。
                 return;
             }
-            else if(p == std::string::npos)
+            else if (p == std::string::npos)
             {
                 //正常应该从上面的return结束。
                 throw HTTPFormatException("finish abnormal ", buf.substr(0, 20));
@@ -224,37 +270,20 @@ namespace ylib
 
     int HTTPMsgParser::parser_resp_line(HTTPVersion &version, int &code, std::string &code_line, const std::string &first_line)
     {
+        // HTTP/1.1 404 Not Found
 
-        auto first_vec = string_split(first_line, ' ');
-        if (first_vec.size() != 3)
+        version = str_to_HTTPVersion(first_line.substr(0, 8)); //前8个字符是版本号
+        if (version == HTTPVersion::V_UNKNOW)
         {
             throw HTTPFormatException("http resp first line format error", first_line);
         }
-        std::string v_str = string_trim(first_vec[0]);
-        if (v_str == "HTTP/1.1")
-        {
-            version = HTTPVersion::V1_1;
-        }
-        else if (v_str == "HTTP/1.0")
-        {
-            version = HTTPVersion::V1_0;
-        }
-        else if (v_str == "HTTP/0.9")
-        {
-            version = HTTPVersion::V0_9;
-        }
-        else
-        {
-            throw HTTPFormatException("http version not support ", first_line);
-        }
-
-        code = ::atoi(first_vec[1].c_str());
+        code = ::atoi(first_line.substr(9, 3).c_str()); // 9，10,11, 是状态码
         if (code == 0)
         {
             throw HTTPFormatException("http code is not a number", first_line);
         }
 
-        code_line = first_vec[2];
+        code_line = first_line.substr(12); // 12个以后的字符全都认为是描述语
         return 0;
     }
 
@@ -268,24 +297,7 @@ namespace ylib
             throw HTTPFormatException("http req first line format error", first_line);
         }
         method = str_to_HTTPMethod(first_vec[0]);
-
-        std::string v_str = string_trim(first_vec[2]);
-        if (v_str == "HTTP/1.1")
-        {
-            version = HTTPVersion::V1_1;
-        }
-        else if (v_str == "HTTP/1.0")
-        {
-            version = HTTPVersion::V1_0;
-        }
-        else if (v_str == "HTTP/0.9")
-        {
-            version = HTTPVersion::V0_9;
-        }
-        else
-        {
-            throw HTTPFormatException("http version not support ", first_line);
-        }
+        version = str_to_HTTPVersion(first_vec[2]);
 
         // 处理url路径
         // 例如:/study/video?class_id=24121&course_id=820&unit_id=13457#123

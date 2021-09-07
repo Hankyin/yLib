@@ -50,3 +50,26 @@ HTTP1.1必须支持chunk模式。因为当不确定消息长度的时候，可�
 ————————————————
 版权声明：本文为CSDN博主「superhosts」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
 原文链接：https://blog.csdn.net/superhosts/article/details/8737434
+
+
+## HTTP消息读取
+每当有一个客户端连接服务器，服务器就会分配一个线程给他。然后双方进行HTTP报文的交互，可以进行多次。
+1. 查找/r/n/r/n，找到后将首行和头部信息分割出来。 进行过长检测和超时处理。
+2. 解析首行和头部。进行格式判断。
+3. 路由解析，得到正确的Handler
+4. 根据Handler创建req和resp对象，
+5. 读取body，如果req有callback，则调用callback，没有就直接读取全部放在req的body中。
+6. req读取完成，调用handler_func
+7. handler_func可以查看req，需要构造resp
+8. 向客户端发送resp，如果resp有callback，就调用callback，否则将body中的数据全部发出去。
+
+错误处理采用异常处理
+路由失败：抛出HTTPRouteException，返回404
+格式错误：抛出HTTPFormatException，返回客户端错误
+Content-Length解析失败：抛出其他异常，直接返回
+# TODO
+HTTP超时处理：
+长期没有发送满足要求的HTTP报文直接认为超时，直接关闭socket
+
+HTTP消息中的中文处理
+
